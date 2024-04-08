@@ -123,3 +123,80 @@ Add below configuration to the main.tf file:
     map_public_ip_on_launch    = true
     availability_zone          = "us-east-2b"
 }
+
+## Fixing The Problems By Code Refactoring
+============================================
+•	Fixing Hard Coded Values: We will introduce variables, and remove hard coding.
+  +	Starting with the provider block, declare a variable named region, give it a default value, and update   the provider section by referring to the declared variable.
+•	 
+   variable "region" {
+•	        default = "us-east-2"
+•	    }
+•	
+•	    provider "aws" {
+•	        region = var.region
+•	    }
+
+variable "vpc_cidr" {
+    default = "172.16.0.0/16"
+}
+
+variable "enable_dns_support" {
+    default = "true"
+}
+
+variable "enable_dns_hostnames" {
+    default ="true" 
+}
+
+variable "enable_classiclink" {
+    default = "false"
+}
+
+variable "enable_classiclink_dns_support" {
+    default = "false"
+}
+
+provider "aws" {
+region = var.region
+}
+
+# Create VPC
+resource "aws_vpc" "main" {
+cidr_block                     = var.vpc_cidr
+enable_dns_support             = var.enable_dns_support 
+enable_dns_hostnames           = var.enable_dns_support
+enable_classiclink             = var.enable_classiclink
+enable_classiclink_dns_support = var.enable_classiclink
+
+}
+
+## Fixing multiple resource blocks: 
+===========================================
+This is where things become a little tricky. It’s not complex, we are just going to introduce some interesting concepts. Loops & Data sources
+Terraform has a functionality that allows us to pull data which exposes information to us. For example, every region has Availability Zones (AZ). Different regions have from 2 to 4 Availability Zones. With over 20 geographic regions and over 70 AZs served by AWS, it is impossible to keep up with the latest information by hard coding the names of AZs. Hence, we will explore the use of Terraform’s Data Sources to fetch information outside of Terraform. In this case, from AWS
+Let us fetch Availability zones from AWS, and replace the hard coded value in the subnet’s availability_zone section.
+Let’s make cidr_block dynamic. We will introduce a function cidrsubnet() to make this happen. It accepts 3 parameters. Let us use it first by updating the configuration, then we will explore its internals.
+
+## Let us fetch Availability zones from AWS, and replace the hard coded value in the subnet’s availability_zone section.
+
+## Get list of availability zones
+
+        data "aws_availability_zones" "available" {
+        state = "available"
+        }
+
+To make use of this new data resource, we will need to introduce a count argument in the subnet block: Something like this.
+    # Create public subnet1
+    resource "aws_subnet" "public" { 
+        count                   = 2
+        vpc_id                  = aws_vpc.main.id
+        cidr_block              = "172.16.1.0/24"
+        map_public_ip_on_launch = true
+        availability_zone       = data.aws_availability_zones.available.names[count.index]
+
+    }
+Let us quickly understand what is going on here.
+•	The count tells us that we need 2 subnets. Therefore, Terraform will invoke a loop to create 2 subnets.
+•	The data resource will return a list object that contains a list of AZs. Internally, Terraform will receive the data like this
+  ["us-east-2a", "us-east-b"]
