@@ -19,5 +19,10 @@ variable "region" {
       default = "false"
  }
 variable "preferred_number_of_public_subnets" {
-      default = 2
+      type = number
+      description = "number of public subnets"
+}
+variable "preferred_number_of_private_subnets" {
+     type = number
+     description = "number of private subnets"
 }
