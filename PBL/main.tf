@@ -23,6 +23,13 @@
   map_public_ip_on_launch = true
   availability_zone       = data.aws_availability_zones.available.names[count.index]
 
+  tags = merge(
+    var.tags,
+    {
+      Name = format("%s-PrivateSubnet-%s", var.name, count.index)
+    },
+  )
+
 }
 
 # Create private subnet
