@@ -14,9 +14,11 @@ preferred_number_of_public_subnets = 2
 
 preferred_number_of_private_subnets = 3
 
+environment = "production"
 tags = {
   Enviroment      = "production" 
   Owner-Email     = "micaho2k@gmail.com"
   Managed-By      = "Terraform"
   Billing-Account = "1234567890"
 }
+

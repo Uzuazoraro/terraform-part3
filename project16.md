@@ -451,3 +451,97 @@ resource "aws_subnet" "private" {
   map_public_ip_on_launch = true
   availability_zone       = data.aws_availability_zones.available.names[count.index]
 }
+
+A little bit more about Tagging
+Tagging is a straightforward, but a very powerful concept that helps you manage your resources much more efficiently:
+•	Resources are much better organized in ‘virtual’ groups
+•	They can be easily filtered and searched from console or programmatically
+•	Billing team can easily generate reports and determine how much each part of infrastructure costs how much (by department, by type, by environment, etc.)
+•	You can easily determine resources that are not being used and take actions accordingly
+•	If there are different teams in the organization using the same account, tagging can help differentiate who owns which resources.
+Note: You can add multiple tags as a default set. for example, in out terraform.tfvars file we can have default tags defined.
+tags = {
+  Enviroment      = "production" 
+  Owner-Email     = "dare@darey.io"
+  Managed-By      = "Terraform"
+  Billing-Account = "1234567890"
+}
+
+## Now you can tag all your resources using the format below
+
+tags = merge(
+    var.tags,
+    {
+      Name = "Name of the resource"
+    },
+  )
+
+## NOTE: Update the variables.tf to declare the variable tags used in the format above;
+
+variable "tags" {
+  description = "A mapping of tags to assign to all resources."
+  type        = map(string)
+  default     = {}
+}
+
+The nice thing about this is – anytime we need to make a change to the tags, we simply do that in one single place (terraform.tfvars).
+But, our key-value pairs are hard coded. So, go ahead and work out a fix for that. Simply create variables for each value and use var.variable_name as the value to each of the keys.
+Apply the same best practices for all other resources you will create further.
+Internet Gateways & format() function
+Create an Internet Gateway in a separate Terraform file internet_gateway.tf
+resource "aws_internet_gateway" "ig" {
+  vpc_id = aws_vpc.main.id
+
+  tags = merge(
+    var.tags,
+    {
+      Name = format("%s-%s!", aws_vpc.main.id,"IG")
+    } 
+  )
+}
+Did you notice how we have used format() function to dynamically generate a unique name for this resource? The first part of the %s takes the interpolated value of aws_vpc.main.id while the second %s appends a literal string IG and finally an exclamation mark is added in the end.
+If any of the resources being created is either using the count function, or creating multiple resources using a loop, then a key-value pair that needs to be unique must be handled differently.
+For example, each of our subnets should have a unique name in the tag section. Without the format() function, we would not be able to see uniqueness. With the format function, each private subnet’s tag will look like this.
+Name = PrvateSubnet-0
+Name = PrvateSubnet-1
+Name = PrvateSubnet-2
+Lets try and see that in action.
+  tags = merge(
+    var.tags,
+    {
+      Name = format("PrivateSubnet-%s", count.index)
+    } 
+  )
+
+##NAT Gateways
+===============================
+
+Create 1 NAT Gateways and 1 Elastic IP (EIP) addresses
+Now use similar approach to create the NAT Gateways in a new file called natgateway.tf.
+Note: We need to create an Elastic IP for the NAT Gateway, and you can see the use of depends_on to indicate that the Internet Gateway resource must be available before this should be created. Although Terraform does a good job to manage dependencies, but in some cases, it is good to be explicit.
+You can read more on dependencies here (https://developer.hashicorp.com/terraform/language/meta-arguments/depends_on)
+
+resource "aws_eip" "nat_eip" {
+  vpc        = true
+  depends_on = [aws_internet_gateway.ig]
+
+  tags = merge(
+    var.tags,
+    {
+      Name = format("%s-EIP", var.name)
+    },
+  )
+}
+
+resource "aws_nat_gateway" "nat" {
+  allocation_id = aws_eip.nat_eip.id
+  subnet_id     = element(aws_subnet.public.*.id, 0)
+  depends_on    = [aws_internet_gateway.ig]
+
+  tags = merge(
+    var.tags,
+    {
+      Name = format("%s-Nat", var.name)
+    },
+  )
+}
