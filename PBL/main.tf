@@ -56,14 +56,14 @@ resource "aws_internet_gateway" "igw" {
   tags = merge(
      var.tags,
      {
-        Name = format("%$-%s-%$", var.name, aws_vpc.main.id, "IGW")
+        Name = format("%s-%s-%s", var.name, aws_vpc.main.id, "IGW")
      },
   )
 }
 
 ## Create 1 NAT Gateways and 1 Elastic IP (EIP) addresses
 resource "aws_eip" "nat_eip" {
-  domain        = aws_vpc.main.id
+  domain       = "vpc"
   depends_on = [aws_internet_gateway.igw]
 
   tags = merge(
@@ -86,3 +86,4 @@ resource "aws_nat_gateway" "nat" {
     },
   )
 }
+
