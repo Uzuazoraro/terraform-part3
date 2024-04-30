@@ -9,6 +9,14 @@
  enable_dns_hostnames           = var.enable_dns_support
  #enable_classiclink_dns_support = var.enable_classiclink
 
+  tags = merge(
+    var.tags,
+    {
+      name = format("%s-VPC", var.name)
+    }
+  )
+
+
  }
  # Get list of availability zones
  data "aws_availability_zones" "available" {
@@ -25,31 +33,29 @@
   tags = merge(
     var.tags,
     {
-      Name = format("%s-PublicSubnet-%s", var.name, count.index)
+      Name = format("%s-public_subnet-%s", var.name, count.index)
     },
   )
-
 }
 
 # Create private subnet
 resource "aws_subnet" "private" {
   count  = var.preferred_number_of_private_subnets == null ? length(data.aws_availability_zones.available.names) : var.preferred_number_of_private_subnets   
   vpc_id = aws_vpc.main.id
-  cidr_block              = cidrsubnet(var.vpc_cidr, 8, count.index)
+  cidr_block              = cidrsubnet(var.vpc_cidr, 8, count.index + 2)
   map_public_ip_on_launch = true
   availability_zone       = data.aws_availability_zones.available.names[count.index]
 
   tags = merge(
     var.tags,
     {
-      Name = format("%s-PrivateSubnet-%s", var.name, count.index)
+      Name = format("%s-private_subnet-%s", var.name, count.index)
     } 
   )
 
 }
 
-## Create internet gateway
-
+# Create internet gateway
 resource "aws_internet_gateway" "igw" {
   vpc_id = aws_vpc.main.id
 
