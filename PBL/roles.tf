@@ -48,3 +48,15 @@ resource "aws_iam_policy" "policy" {
   )
 
 }
+
+# Attach the policy to the I AM role
+resource "aws_iam_role_policy_attachment" "test-attach" {
+        role       = aws_iam_role.ec2_instance_role.name
+        policy_arn = aws_iam_policy.policy.arn
+    }
+
+# Create an Instance Profile and interpolate the IAM Role
+resource "aws_iam_instance_profile" "ip" {
+        name = "aws_instance_profile_test"
+        role =  aws_iam_role.ec2_instance_role.name
+    }
