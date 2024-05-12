@@ -718,4 +718,42 @@ As per our architecture we need to do the following:
 7.	Create Elastic Filesystem
 8.	Create Relational Database (RDS)
 
-Let us create some Terraform configuration code to accomplish these tasks.
+## We are going to create all the security groups in a single file, then we are going to refrence this security group within each resources that needs it.
+
+Create a file and name it security.tf
+Create all the security groups inside this file.
+
+IMPORTANT:
+•	Check out the terraform documentation for security group (https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/security_group)
+•	Check out the terraform documentation for security group rule (https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/security_group_rule)
+
+
+## CREATE CERTIFICATE FROM AMAZON CERIFICATE MANAGER
+Create cert.tf file and add the following code snippets to it.
+
+## . Create an external (Internet facing) Application Load Balancer (ALB)
+Create a file called alb.tf
+First of all we will create the ALB, then we create the target group and lastly we will create the lsitener rule.
+Useful Terraform Documentation, go through this documentation and understand the arguement needed for each resources:
+•	ALB
+•	ALB-target
+•	ALB-listener
+We need to create an ALB to balance the traffic between the Instances:
+
+To inform our ALB to where route the traffic we need to create a Target Group to point to its targets:
+
+Then we will need to create a Listener for this target Group
+
+# Add the following outputs to output.tf to print them on screen
+
+output "alb_dns_name" {
+  value = aws_lb.ext-alb.dns_name
+}
+
+output "alb_target_group_arn" {
+  value = aws_lb_target_group.nginx-tgt.arn
+}
+
+
+# Create an Internal (Internal) Application Load Balancer (ALB)
+For the Internal Load balancer we will follow the same concepts with the external load balancer.
