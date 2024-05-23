@@ -757,3 +757,143 @@ output "alb_target_group_arn" {
 
 # Create an Internal (Internal) Application Load Balancer (ALB)
 For the Internal Load balancer we will follow the same concepts with the external load balancer.
+
+For the Internal Load balancer we will follow the same concepts with the external load balancer.
+Add the code snippets inside the alb.tf file
+# ----------------------------
+#Internal Load Balancers for webservers
+#---------------------------------
+
+resource "aws_lb" "ialb" {
+  name     = "ialb"
+  internal = true
+  security_groups = [
+    aws_security_group.int-alb-sg.id,
+  ]
+
+  subnets = [
+    aws_subnet.private[0].id,
+    aws_subnet.private[1].id
+  ]
+
+  tags = merge(
+    var.tags,
+    {
+      Name = "Micolo-int-alb"
+    },
+  )
+
+  ip_address_type    = "ipv4"
+  load_balancer_type = "application"
+}
+
+To inform our ALB to where route the traffic we need to create a Target Group to point to its targets:
+# --- target group  for wordpress -------
+
+resource "aws_lb_target_group" "wordpress-tgt" {
+  health_check {
+    interval            = 10
+    path                = "/healthstatus"
+    protocol            = "HTTPS"
+    timeout             = 5
+    healthy_threshold   = 5
+    unhealthy_threshold = 2
+  }
+
+  name        = "wordpress-tgt"
+  port        = 443
+  protocol    = "HTTPS"
+  target_type = "instance"
+  vpc_id      = aws_vpc.main.id
+}
+
+# --- target group for tooling -------
+
+resource "aws_lb_target_group" "tooling-tgt" {
+  health_check {
+    interval            = 10
+    path                = "/healthstatus"
+    protocol            = "HTTPS"
+    timeout             = 5
+    healthy_threshold   = 5
+    unhealthy_threshold = 2
+  }
+
+  name        = "tooling-tgt"
+  port        = 443
+  protocol    = "HTTPS"
+  target_type = "instance"
+  vpc_id      = aws_vpc.main.id
+}
+Then we will need to create a Listener for this target Group
+# For this aspect a single listener was created for the wordpress which is default,
+# A rule was created to route traffic to tooling when the host header changes
+
+resource "aws_lb_listener" "web-listener" {
+  load_balancer_arn = aws_lb.ialb.arn
+  port              = 443
+  protocol          = "HTTPS"
+  certificate_arn   = aws_acm_certificate_validation.oyindamola.certificate_arn
+
+  default_action {
+    type             = "forward"
+    target_group_arn = aws_lb_target_group.wordpress-tgt.arn
+  }
+}
+
+# listener rule for tooling target
+
+resource "aws_lb_listener_rule" "tooling-listener" {
+  listener_arn = aws_lb_listener.web-listener.arn
+  priority     = 99
+
+  action {
+    type             = "forward"
+    target_group_arn = aws_lb_target_group.tooling-tgt.arn
+  }
+
+  condition {
+    host_header {
+      values = ["tooling.zireuz.com"]
+    }
+  }
+}
+
+## CREATING AUTOSCALING GROUPS
+
+This Section we will create the Auto Scaling Group (ASG) (https://docs.aws.amazon.com/autoscaling/ec2/userguide/auto-scaling-groups.html)
+
+Now we need to configure our ASG to be able to scale the EC2s out and in depending on the application traffic.
+Before we start configuring an ASG, we need to create the launch template and the the AMI needed. For now we are going to use a random AMI from AWS, then in project 19, we will use Packer to create our ami.
+Based on our Architecture we need for Auto Scaling Groups for bastion, nginx, wordpress and tooling, so we will create two files; asg-bastion-nginx.tf will contain Launch Template and Autoscaling group for Bastion and Nginx, then asg-wordpress-tooling.tf will contain Launch Template and Austoscaling group for wordpress and tooling.
+Useful Terraform Documentation, go through this documentation and understand the arguement needed for each resources:
+•	SNS-topic
+•	SNS-notification
+•	Austoscaling
+•	Launch-template
+
+
+## Create asg-bastion-nginx.tf and paste all the code snippet below;
+
+#### creating sns topic for all the auto scaling groups
+
+resource "aws_sns_topic" "david-sns" {
+name = "Default_CloudWatch_Alarms_Topic"
+}
+creating notification for all the auto scaling groups
+resource "aws_autoscaling_notification" "david_notifications" {
+  group_names = [
+    aws_autoscaling_group.bastion-asg.name,
+    aws_autoscaling_group.nginx-asg.name,
+    aws_autoscaling_group.wordpress-asg.name,
+    aws_autoscaling_group.tooling-asg.name,
+  ]
+  notifications = [
+    "autoscaling:EC2_INSTANCE_LAUNCH",
+    "autoscaling:EC2_INSTANCE_TERMINATE",
+    "autoscaling:EC2_INSTANCE_LAUNCH_ERROR",
+    "autoscaling:EC2_INSTANCE_TERMINATE_ERROR",
+  ]
+
+  topic_arn = aws_sns_topic.david-sns.arn
+}

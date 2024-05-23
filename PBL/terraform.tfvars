@@ -22,3 +22,6 @@ tags = {
   Billing-Account = "1234567890"
 }
 
+ami = "ami-ami-09040d770ffe2224f"
+
+keypair = "devops"
