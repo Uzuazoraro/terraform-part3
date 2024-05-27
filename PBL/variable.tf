@@ -52,3 +52,8 @@ variable "keypair" {
   type        = string
   description = "key pair for the instances"
 }
+
+variable "account_no" {
+  type        = number
+  description = "the account number"
+}

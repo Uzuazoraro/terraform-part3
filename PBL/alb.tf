@@ -23,7 +23,6 @@ resource "aws_lb" "ext-alb" {
 }
 
 ## To inform our ALB to where route the traffic we need to create a Target Group to point to its targets.
-
 resource "aws_lb_target_group" "nginx-tgt" {
   health_check {
     interval            = 10

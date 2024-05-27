@@ -36,7 +36,7 @@ resource "aws_launch_template" "bastion-launch-template" {
   iam_instance_profile {
     name = aws_iam_instance_profile.ip.id
   }
-
+                                                                                                                                                                                                                                                                                                                                              
   key_name = var.keypair
 
   placement {

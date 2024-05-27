@@ -12,16 +12,20 @@ enable_dns_support = "true"
 
 preferred_number_of_public_subnets = 2
 
-preferred_number_of_private_subnets = 3
+preferred_number_of_private_subnets = 4
 
 environment = "production"
+
+# Ensure to change this to your acccount number
+account_no = "421000527042"
 tags = {
   Enviroment      = "production" 
   Owner-Email     = "micaho2k@gmail.com"
   Managed-By      = "Terraform"
-  Billing-Account = "1234567890"
+  Billing-Account = "421000527042"
 }
 
 ami = "ami-ami-09040d770ffe2224f"
 
 keypair = "devops"
+
