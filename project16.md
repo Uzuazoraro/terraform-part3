@@ -897,3 +897,58 @@ resource "aws_autoscaling_notification" "david_notifications" {
 
   topic_arn = aws_sns_topic.david-sns.arn
 }
+
+## STORAGE AND DATABASE
+
+Useful Terraform Documentation, go through this documentation and understand the arguement needed for each resources:
+•	RDS {https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/db_subnet_group}
+•	EFS {https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/efs_file_system}
+•	KMS {https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/kms_key}
+
+Create Elastic File System (EFS)
+In order to create an EFS you need to create a KMS key.
+AWS Key Management Service (KMS) makes it easy for you to create and manage cryptographic keys and control their use across a wide range of AWS services and in your applications.
+
+Create MySQL RDS
+Let us create the RDS itself using this snippet of code in rds.tf file:
+# This section will create the subnet group for the RDS  instance using the private subnet
+resource "aws_db_subnet_group" "ACS-rds" {
+  name       = "acs-rds"
+  subnet_ids = [aws_subnet.private[2].id, aws_subnet.private[3].id]
+
+ tags = merge(
+    var.tags,
+    {
+      Name = "ACS-rds"
+    },
+  )
+}
+
+# create the RDS instance with the subnets group
+resource "aws_db_instance" "ACS-rds" {
+  allocated_storage      = 20
+  storage_type           = "gp2"
+  engine                 = "mysql"
+  engine_version         = "5.7"
+  instance_class         = "db.t2.micro"
+  name                   = "daviddb"
+  username               = var.master-username
+  password               = var.master-password
+  parameter_group_name   = "default.mysql5.7"
+  db_subnet_group_name   = aws_db_subnet_group.ACS-rds.name
+  skip_final_snapshot    = true
+  vpc_security_group_ids = [aws_security_group.datalayer-sg.id]
+  multi_az               = "true"
+}
+
+At this point, you shall have pretty much all infrastructure elements ready to be deployed automatically, but before we plan and apply our code we need to take note of two things;
+•	we have a long list of files which may looks confusing but that is not bad for a start, we are going to fix this using the concepts of modules in Project 18
+•	Secondly, our application won’t work because in out shell script that was passed into the launch some endpoints like the RDs and EFS point is needed in which they have not been created yet. So, in project 19 we will use our Ansible knowledge to fix this.
+Try to plan and apply your Terraform codes, explore the resources in AWS console and make sure you destroy them right away to avoid massive costs.
+Additional tasks
+In addition to regular project submission include following:
+1.	Summarise your understanding on Networking concepts like IP Address, Subnets, CIDR Notation, IP Routing, Internet Gateways, NAT
+2.	Summarise your understanding of the OSI Model, TCP/IP suite and how they are connected – research beyond the provided articles, watch different YouTube videos to fully understand the concept around OSI and how it is related to the Internet and end-to-end Web Solutions. You don not need to memorise the layers – just understand the idea around it.
+3.	Explain the difference between assume role policy and role policy
+Congratulations!
+Now you have fully automated creation of AWS Infrastructure for 2 websites with Terraform. In the next project we will further enhance our codes by refactoring and introducing more exciting Terraform concepts! Go ahead and continue your PBL journey with us!

@@ -29,3 +29,8 @@ ami = "ami-ami-09040d770ffe2224f"
 
 keypair = "devops"
 
+master-username = "uzuazoraro"
+
+master-password = "devopstraining"
+
+db_name = "micolodb"

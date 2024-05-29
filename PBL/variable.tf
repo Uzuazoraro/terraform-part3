@@ -57,3 +57,18 @@ variable "account_no" {
   type        = number
   description = "the account number"
 }
+
+variable "master-username" {
+  type        = string
+  description = "RDS admin username"
+}
+
+variable "master-password" {
+  type        = string
+  description = "RDS master password"
+}
+
+variable "db_name" {
+  type        = string
+  description = "name of db"
+}
